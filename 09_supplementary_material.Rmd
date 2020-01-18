@@ -394,6 +394,168 @@ df %>%
 
 ```
 
+## Network Data
+
+```{r net1}
+library(ggraph)
+library(tidygraph)
+library(graphlayouts)
+library(janitor)
+
+drat::addRepo("kjhealy")
+install.packages("kjhnet")
+library(kjhnet)
+
+head(revere)
+
+```
+
+
+```{r net2}
+revere_groups
+```
+
+
+```{r net3}
+revere_groups %>%
+  ggraph(layout = "kk") +
+  geom_edge_link(aes(width = value), color = "gray80") +
+  geom_node_label(aes(label = name))
+
+```
+
+
+```{r net4}
+revere_persons
+```
+
+
+```{r net5}
+revere_persons %>%
+  mutate(centrality = centrality_eigen()) %>%
+  ggraph(layout = "stress") +
+  geom_edge_link0(mapping = aes(filter = value > 1, 
+                                 width = value), 
+           color = "gray90") +
+  geom_node_point() +
+  geom_node_label(mapping = aes(filter = centrality > 0.9, 
+                                label = name), 
+                  size = rel(2.5))
+```
+
+
+```{r net6}
+il_tidy
+```
+
+```{r net7}
+il_tidy %>%
+  activate(nodes) %>%
+  mutate(centrality = centrality_degree()) %>%
+  ggplot(mapping = aes(x = centrality)) + 
+  geom_histogram() + 
+  labs(x = "Count of Victories", y = "Count of Warriors ") +
+  theme_minimal() + 
+  theme(legend.position = "top")
+
+```
+
+
+```{r net8}
+il_tidy %>%
+  activate(nodes) %>%
+  mutate(centrality = centrality_degree()) %>%
+  arrange(desc(centrality)) %>%
+  top_n(10, wt = centrality) %>%
+  ggplot(mapping = aes(x = centrality, 
+                       y = reorder(name, centrality), 
+                       color = affil)) + 
+  geom_point(size = 3) + 
+  labs(x = "Centrality", y = NULL, color = "Side") +
+  theme_minimal() + 
+  theme(legend.position = "top")
+
+```
+
+
+```{r net9}
+il_tidy %>%
+  activate(nodes) %>%
+  ggraph(layout = "fr") +
+  geom_edge_link(color = "gray80") +
+  geom_node_point(aes(color = affil)) +
+  scale_color_manual(values = c("blue", "red"), 
+                     labels = c("Athenian", "Trojan")) +
+  guides(color = guide_legend(title = "Side", )) +
+  labs(title = "Killings in The Iliad") +
+  theme(plot.title = element_text(size = rel(3)))
+
+```
+
+
+```{r net10}
+label_colors <- c(prismatic::clr_lighten("blue", 0.7), 
+                  prismatic::clr_lighten("red", 0.7))
+il_tidy %>%
+  activate(edges) %>%
+  filter(act == "kills") %>%
+  activate(nodes) %>%
+  mutate(centrality = centrality_degree(mode = "out")) %>%
+  ggraph(layout = 'graphopt') +
+  geom_edge_link(aes(start_cap = label_rect(node1.name),
+                     end_cap = label_rect(node2.name)),
+                 arrow = arrow(length = unit(1.5, 'mm'))) +
+  geom_node_point(aes(color = affil)) +
+  scale_color_manual(values = c("blue", "red"), 
+                     labels = c("Athenian", "Trojan")) +
+  guides(color = FALSE, fill = FALSE) +
+  geom_node_label(aes(filter = centrality > 3, 
+                      label = name, fill = affil), 
+                      size = rel(2.5)) +
+  scale_fill_manual(values = label_colors) + 
+  labs(title = "Killings in The Iliad") +
+  theme(plot.title = element_text(size = rel(3)))
+
+```
+
+
+```{r net11}
+il_tidy %>%
+  activate(nodes) %>%
+  mutate(centrality = centrality_degree(),
+         betweenness = centrality_betweenness()) %>%
+  arrange(desc(betweenness)) %>%
+  top_n(10, wt = betweenness) %>%
+  ggplot(mapping = aes(x = betweenness, 
+                       y = reorder(name, 
+                       betweenness), color = affil)) + 
+  geom_point(size = 3) + 
+  labs(x = "Betweenness", y = NULL, color = "Side") +
+  theme_minimal() + 
+  theme(legend.position = "top")
+
+```
+
+```{r net12}
+il_tidy %>%
+  activate(edges) %>%
+  filter(act == "kills") %>%
+  reroute(from = to, to = from) %>%
+  activate(nodes) %>%
+  mutate(alpha = centrality_alpha()) %>%
+  arrange(desc(alpha)) %>%
+    top_n(10, wt = alpha) %>%
+  ggplot(mapping = aes(x = alpha, 
+                       y = reorder(name, alpha), 
+                       color = affil)) + 
+  geom_point(size = 3) + 
+  labs(x = "Alpha Centrality", y = NULL, color = "Side") +
+  theme_minimal() + 
+  theme(legend.position = "top")
+
+```
+
+
 ## Functions
 
 ```{r addnum1, echo = FALSE}
