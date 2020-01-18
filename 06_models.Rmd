@@ -350,6 +350,148 @@ p + geom_pointrange(position = position_dodge(width = 1)) +
     labs(x = "Year", y = "Estimate", color = "Continent")
 ```
 
+## Grouped Analysis: PCA Example
+
+### On the full dataset ...
+
+```{r pca-1}
+mw_pca <- midwest %>%
+    group_by(state) %>%
+    select_if(is.numeric) %>%
+    select(-PID)
+    
+mw_pca
+
+```
+
+```{r pca-2}
+do_pca <- function(df){
+  prcomp(df,
+         center = TRUE, scale = TRUE)
+}
+
+out_pca <- mw_pca %>%
+    ungroup() %>%
+    select(-state) %>%
+    do_pca()
+
+summary(out_pca)
+
+```
+
+```{r pca-3}
+tidy_pca <- tidy(out_pca, matrix = "pcs")
+
+tidy_pca
+```
+
+
+```{r pca-4}
+tidy_pca %>%
+    ggplot(aes(x = PC, y = percent)) +
+    geom_line() +
+    labs(x = "Principal Component", y = "Variance Explained") 
+```
+
+
+### ... or nested by state
+
+```{r pca-5}
+mw_pca <- mw_pca %>%
+    group_by(state) %>%
+    nest()
+
+mw_pca
+
+```
+
+```{r pca-6}
+
+state_pca <- mw_pca %>% 
+    mutate(pca = map(data, do_pca))
+
+state_pca
+
+```
+
+
+```{r pca-7}
+do_tidy <- function(pr){
+    broom::tidy(pr, matrix = "pcs")
+}
+state_pca  <- mw_pca %>%
+    mutate(pca = map(data, do_pca),
+           pcs = map(pca, do_tidy)) 
+
+state_pca
+
+```
+
+
+```{r pca-8}
+
+state_pca %>%
+    unnest(cols = c(pcs)) %>%
+    ggplot(aes(x = PC, y = percent)) +
+    geom_line(size = 1.1) +
+    facet_wrap(~ state, nrow = 1) +
+    labs(x = "Principal Component",
+         y = "Variance Explained")
+
+```
+
+```{r pca-9}
+do_aug <- function(pr){
+    broom::augment(pr)
+}
+
+
+state_pca  <- mw_pca %>%
+    mutate(pca = map(data, do_pca),
+           pcs = map(pca, do_tidy),
+           fitted = map(pca, do_aug)) 
+
+state_pca
+
+```
+
+
+```{r pca-10}
+
+state_pca %>%
+    unnest(cols = c(fitted)) %>%
+    ggplot(aes(x = .fittedPC1,
+               y = .fittedPC2)) +
+    geom_point() +
+    facet_wrap(~ state) + 
+    labs(x = "First Principal Component", 
+         y = "Second Principal Component") 
+```
+
+### Grouped PCA in a single sequence
+
+```{r pca-11}
+
+midwest %>%
+    group_by(state) %>%
+    select_if(is.numeric) %>%
+    select(-PID) %>%
+    nest() %>%
+    mutate(pca = map(data, do_pca),
+           pcs = map(pca, do_tidy),
+           fitted = map(pca, do_aug)) %>%
+    unnest(cols = c(fitted)) %>%
+    add_column(county = midwest$county) %>%
+    ggplot(mapping = aes(x = .fittedPC2,
+               y = .fittedPC3,
+               label = county)) +
+    geom_text(size = 1.1) +
+    labs(x = "Second Principal Component", 
+         y = "Third Principal Component") +
+    theme_minimal() + facet_wrap(~ state, ncol = 2)
+
+```
+
 
 ## Plot marginal effects
 
@@ -358,7 +500,6 @@ Note that calculating marginal effects can take some time!
 ```{r 06-models-29}
 library(margins)
 ```
-
 
 ```{r 06-models-30}
 

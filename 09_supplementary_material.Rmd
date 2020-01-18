@@ -226,6 +226,174 @@ bad_year$year <- int_to_year(bad_year$year)
 bad_year %>% select(1:3)
 ```
 
+## Visualizing Missing Data
+
+```{r missing-1}
+drat::addRepo("kjhealy")
+install.packages("congress")
+library(congress)
+
+library(naniar)
+library(visdat)
+
+```
+
+```{r missing-2}
+vis_dat(congress)
+```
+
+```{r missing-3}
+gg_miss_var(organdata)
+```
+
+```{r missing-4}
+vis_dat(organdata)
+```
+
+```{r missing-5}
+miss_var_summary(organdata)
+```
+
+```{r missing-6}
+organdata %>%
+  select(consent_law, year, pubhealth, roads) %>%
+  group_by(consent_law) %>%
+  miss_var_summary()
+
+```
+
+```{r missing-7}
+
+vis_miss(organdata)
+```
+
+```{r missing-8}
+
+gg_miss_upset(organdata)
+```
+
+```{r missing-9}
+ggplot(data = organdata, mapping = aes(x = pubhealth, y = donors)) + 
+geom_point()
+```
+
+```{r missing-10}
+
+ggplot(data = organdata, mapping = aes(x = pubhealth, y = donors)) + 
+geom_miss_point()
+```
+
+```{r missing-11}
+gg_miss_fct(x = riskfactors, fct = marital)
+```
+
+## Zero Counts in Dplyr
+
+```{r zero-1}
+
+## Hex colors for sex
+sex_colors <- c("#E69F00", "#993300")
+
+## Hex color codes for Dem Blue and Rep Red
+party_colors <- c("#2E74C0", "#CB454A")
+
+## Group labels
+mf_labs <- tibble(M = "Men", F = "Women")
+
+df <- read_csv("data/fc_sample.csv")
+
+df
+
+```
+
+```{r zero-2}
+df %>%
+    group_by(start_year, party, sex) %>%
+    summarize(N = n()) %>%
+    mutate(freq = N / sum(N))
+
+
+```
+
+```{r zero-3}
+
+df %>%
+    group_by(start_year, party, sex) %>%
+    summarize(N = n()) %>%
+    mutate(freq = N / sum(N)) %>%
+    ggplot(aes(x = start_year,
+               y = freq,
+               fill = sex)) +
+    geom_col() +
+    scale_y_continuous(labels = scales::percent) +
+    scale_fill_manual(values = sex_colors, 
+                      labels = c("Women", "Men")) +
+    labs(x = "Year", y = "Percent", fill = "Group") +
+    facet_wrap(~ party)
+```
+
+
+```{r zero-4}
+
+df %>%
+    group_by(start_year, party, sex) %>%
+    summarize(N = n()) %>%
+    mutate(freq = N / sum(N)) %>%
+    ggplot(aes(x = start_year,
+               y = freq,
+               color = sex)) +
+    geom_line(size = 1.1) +
+    scale_y_continuous(labels = scales::percent) +
+    scale_color_manual(values = sex_colors, 
+                       labels = c("Women", "Men")) +
+    guides(color = guide_legend(reverse = TRUE)) +
+    labs(x = "Year", y = "Percent", color = "Group") +
+    facet_wrap(~ party)
+```
+
+
+```{r zero-5}
+df_f <- df %>% modify_if(is.character, as.factor)
+
+df_f %>%
+    group_by(start_year, party, sex) %>%
+    tally()
+
+```
+
+```{r zero-5a}
+df_f %>%
+    group_by(start_year, party, sex) %>%
+    summarize(N = n()) %>%
+    mutate(freq = N / sum(N)) %>%
+    ggplot(aes(x = start_year,
+               y = freq,
+               color = sex)) +
+    geom_line(size = 1.1) +
+    scale_y_continuous(labels = scales::percent) +
+    scale_color_manual(values = sex_colors, 
+                       labels = c("Women", "Men")) +
+    guides(color = guide_legend(reverse = TRUE)) +
+    labs(x = "Year", y = "Percent", color = "Group") +
+    facet_wrap(~ party)
+```
+
+```{r zero-6}
+df %>%
+    group_by(start_year, party, sex) %>%
+    summarize(N = n()) %>%
+    mutate(freq = N / sum(N)) %>%
+    ungroup() %>%
+    complete(start_year, party, sex,
+             fill = list(N = 0, freq = 0))
+
+```
+
+```{r zero-7}
+
+
+```
+
 ## Functions
 
 ```{r addnum1, echo = FALSE}
@@ -411,3 +579,4 @@ theme_map <- function(base_size=9, base_family="") {
 }
 
 ```
+
